@@ -1,0 +1,6 @@
+Appliance,Temperature,TimeOfDay,UsageTime,Power,HouseholdSize,Season,DayType
+Air Conditioning,22,Afternoon,5,1500,3,Summer,Weekday
+Washing Machine,25,Morning,1,500,3,Summer,Weekend
+Fridge,26,Night,8,300,3,Winter,Weekday
+Oven,23,Evening,0.5,2000,4,Winter,Weekend
+TV,24,Night,4,150,2,Rainy,Weekday

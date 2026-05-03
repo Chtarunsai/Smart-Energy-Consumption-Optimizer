@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SECO 1.0 — Smart Energy Optimizer</title>
+    <meta name="description" content="AI-powered smart energy consumption optimizer for industrial and residential deployment.">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script>
+        // Prevent theme flicker
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+</head>
+<body>
+<div id="loading-overlay">
+    <div class="spinner"></div>
+    <p style="margin-top:20px; font-weight:600; font-size:16px; letter-spacing:0.5px;">Processing Energy Data...</p>
+</div>
+
+<!-- ===== SIDEBAR ===== -->
+<nav class="sidebar">
+    <div class="sidebar-logo">SECO 1.0</div>
+    <ul class="sidebar-menu">
+        <li class="menu-item active" onclick="showPage('dashboard', this)">Dashboard</li>
+        <li class="menu-item" onclick="showPage('analytics', this)">Analytics</li>
+        <li class="menu-item" onclick="showPage('reports', this)">Reports</li>
+        <li class="menu-item" onclick="showPage('devices', this)">Devices</li>
+        <li class="menu-item" onclick="showPage('settings', this)">Settings</li>
+    </ul>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main class="main-content">
+
+    <!-- HEADER -->
+    <header class="header">
+        <div>
+            <h1>Smart Energy Optimizer</h1>
+            <p>AI-powered energy consumption analysis & forecasting</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div id="ai-status-badge">
+                <span style="color:var(--text-muted); font-size:12px;">AI Status</span>
+                <span id="ai-status-text" style="font-weight:600; color:var(--text-primary);">🟢 Ready</span>
+            </div>
+            <button class="btn-secondary" onclick="openStoredDataModal()" title="View history" style="padding:9px 14px; border-radius:50%;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- ═══════════════ DASHBOARD PAGE ═══════════════ -->
+    <section id="dashboard-page" class="page" style="display:block;">
+
+        <!-- Mode selector -->
+        <div class="tab-selector">
+            <button class="tab-btn active" id="tab-manual" onclick="switchMode('manual', this)">Manual Input</button>
+            <button class="tab-btn" id="tab-csv" onclick="switchMode('csv', this)">CSV Upload</button>
+        </div>
+
+        <div class="dashboard-grid">
+
+            <!-- Environment Card -->
+            <div class="glass-card">
+                <span class="widget-title">Environment</span>
+                <div style="margin-top:20px; display:flex; flex-direction:column; gap:18px;">
+
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <label style="margin:0;">Temperature (°C)</label>
+                            <span id="temp-val" style="font-weight:700; color:var(--accent); font-size:16px;">25</span>
+                        </div>
+                        <input type="range" id="temp" min="10" max="45" value="25" oninput="updateTempLabel(this.value)">
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div>
+                            <label>Time of Day</label>
+                            <div class="custom-select" onclick="toggleCustomSelect(this, event)">
+                                <div class="select-trigger">
+                                    <span>Afternoon</span>
+                                </div>
+                                <div class="select-options">
+                                    <div class="option" data-value="Morning" onclick="handleOptionClick(this, event)">Morning</div>
+                                    <div class="option selected" data-value="Afternoon" onclick="handleOptionClick(this, event)">Afternoon</div>
+                                    <div class="option" data-value="Evening" onclick="handleOptionClick(this, event)">Evening</div>
+                                    <div class="option" data-value="Night" onclick="handleOptionClick(this, event)">Night</div>
+                                </div>
+                                <select id="time-of-day" style="display:none;">
+                                    <option value="Morning">Morning</option>
+                                    <option value="Afternoon" selected>Afternoon</option>
+                                    <option value="Evening">Evening</option>
+                                    <option value="Night">Night</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label>Day Type</label>
+                            <div class="custom-select" onclick="toggleCustomSelect(this, event)">
+                                <div class="select-trigger">
+                                    <span>Weekday</span>
+                                </div>
+                                <div class="select-options">
+                                    <div class="option selected" data-value="Weekday" onclick="handleOptionClick(this, event)">Weekday</div>
+                                    <div class="option" data-value="Weekend" onclick="handleOptionClick(this, event)">Weekend</div>
+                                </div>
+                                <select id="day-type" style="display:none;">
+                                    <option value="Weekday" selected>Weekday</option>
+                                    <option value="Weekend">Weekend</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label>Season</label>
+                        <div class="custom-select" onclick="toggleCustomSelect(this, event)">
+                            <div class="select-trigger">
+                                <span>Summer</span>
+                            </div>
+                            <div class="select-options">
+                                <div class="option selected" data-value="Summer" onclick="handleOptionClick(this, event)">Summer</div>
+                                <div class="option" data-value="Winter" onclick="handleOptionClick(this, event)">Winter</div>
+                                <div class="option" data-value="Rainy" onclick="handleOptionClick(this, event)">Rainy</div>
+                            </div>
+                            <select id="season" style="display:none;">
+                                <option value="Summer" selected>Summer</option>
+                                <option value="Winter">Winter</option>
+                                <option value="Rainy">Rainy</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Household Card -->
+            <div class="glass-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+                <span class="widget-title">Household</span>
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; gap:12px; padding:20px 0;">
+                    <p style="font-size:13px; color:var(--text-muted); text-align:center;">Number of occupants</p>
+                    <div class="stepper">
+                        <button onclick="decrementHSize()">−</button>
+                        <span id="hsize-val">3</span>
+                        <button onclick="incrementHSize()">+</button>
+                    </div>
+                    <input type="hidden" id="hsize" value="3">
+                </div>
+                <div style="padding-top:12px; border-top:1px solid var(--border);">
+                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <label style="margin:0; font-size:13px;">Air Conditioning</label>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span id="ac-label" style="font-size:12px; color:var(--text-muted);">OFF</span>
+                            <div id="ac-toggle" class="ios-switch" onclick="toggleAC()"></div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="acusage" value="0">
+                </div>
+            </div>
+
+            <!-- Cost & Goals Card -->
+            <div class="glass-card">
+                <span class="widget-title">Cost & Goals</span>
+                <div style="margin-top:20px; display:flex; flex-direction:column; gap:18px;">
+                    <div>
+                        <label>Unit Cost (₹/kWh)</label>
+                        <input type="number" id="cost-per-unit" value="8" step="0.5" min="0" placeholder="e.g. 8">
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <label style="margin:0;">Monthly Budget (kWh)</label>
+                            <span id="goal-val" style="font-weight:700; color:var(--accent);">250</span>
+                        </div>
+                        <input type="range" id="energy-goal" min="50" max="1000" value="250" oninput="document.getElementById('goal-val').innerText = this.value">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Appliances Full-width Card -->
+            <div class="glass-card full-width">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <span class="widget-title">Appliances & Controls</span>
+                </div>
+
+                <!-- Manual zone -->
+                <div id="manual-input-zone">
+                    <div id="appliance-list" style="display:flex; flex-direction:column; gap:10px; overflow:visible;">
+                        <div class="appliance-row">
+                            <div>
+                                <label>Appliance</label>
+                                <div class="custom-select" onclick="toggleCustomSelect(this, event)">
+                                    <div class="select-trigger">
+                                        <span>Air Conditioning</span>
+                                    </div>
+                                    <div class="select-options">
+                                        <div class="option selected" data-value="Air Conditioning" onclick="handleOptionClick(this, event)">Air Conditioning</div>
+                                        <div class="option" data-value="Computer" onclick="handleOptionClick(this, event)">Computer</div>
+                                        <div class="option" data-value="Dishwasher" onclick="handleOptionClick(this, event)">Dishwasher</div>
+                                        <div class="option" data-value="Fridge" onclick="handleOptionClick(this, event)">Fridge</div>
+                                        <div class="option" data-value="Heater" onclick="handleOptionClick(this, event)">Heater</div>
+                                        <div class="option" data-value="Lights" onclick="handleOptionClick(this, event)">Lights</div>
+                                        <div class="option" data-value="Microwave" onclick="handleOptionClick(this, event)">Microwave</div>
+                                        <div class="option" data-value="Oven" onclick="handleOptionClick(this, event)">Oven</div>
+                                        <div class="option" data-value="TV" onclick="handleOptionClick(this, event)">TV</div>
+                                        <div class="option" data-value="Washing Machine" onclick="handleOptionClick(this, event)">Washing Machine</div>
+                                        <div class="option" data-value="Other" onclick="handleOptionClick(this, event)">Other</div>
+                                    </div>
+                                    <select class="appliance-type" style="display:none;">
+                                        <option value="Air Conditioning">Air Conditioning</option>
+                                        <option value="Computer">Computer</option>
+                                        <option value="Dishwasher">Dishwasher</option>
+                                        <option value="Fridge">Fridge</option>
+                                        <option value="Heater">Heater</option>
+                                        <option value="Lights">Lights</option>
+                                        <option value="Microwave">Microwave</option>
+                                        <option value="Oven">Oven</option>
+                                        <option value="TV">TV</option>
+                                        <option value="Washing Machine">Washing Machine</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label>Power (W)</label>
+                                <input type="number" class="appliance-power" value="1500">
+                            </div>
+                            <div>
+                                <label>Usage Time (h)</label>
+                                <input type="number" class="appliance-time" value="5" min="0.5" max="24" step="0.5">
+                            </div>
+                            <button class="remove-btn" onclick="removeApplianceRow(this)" style="visibility:hidden;">×</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:16px; display:flex; justify-content:space-between; align-items:center;">
+                        <button class="btn-secondary" onclick="addApplianceRow()">+ Add Appliance</button>
+                        <button class="btn-primary" onclick="predictManual()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            Run AI Analysis
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CSV zone -->
+                <div id="csv-input-zone" style="display:none;">
+                    <div id="drop-zone">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted); margin-bottom:12px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <p style="color:var(--text-secondary); margin-bottom:6px; font-weight:500;">Drag & drop your CSV file here</p>
+                        <p style="color:var(--text-muted); font-size:12px; margin-bottom:16px;">Supports .csv files up to 5,000 rows</p>
+                        <input type="file" id="csv-file" accept=".csv" style="display:none;">
+                        <button class="btn-secondary" onclick="document.getElementById('csv-file').click()">Browse Files</button>
+                        <div id="file-name" style="margin-top:12px; font-size:13px; font-weight:500; color:var(--accent);"></div>
+                        <button id="upload-btn" class="btn-primary" style="margin-top:16px; display:none;" onclick="predictCSV()">Upload & Process</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Forecast Card -->
+            <div class="glass-card" style="grid-column:span 1;">
+                <span class="widget-title">AI Forecast</span>
+
+                <div id="result-placeholder" style="text-align:center; padding:32px 0;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted); display:block; margin:0 auto 10px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <p style="color:var(--text-muted); font-size:13px;">Configure inputs and run analysis</p>
+                </div>
+
+                <div id="prediction-result" style="display:none; text-align:center; margin-top:12px;">
+                    <div style="margin-bottom:6px;">
+                        <span class="prediction-value" id="energy-val">0.0</span>
+                        <span style="font-size:16px; color:var(--text-muted); font-weight:500; margin-left:4px;">kWh</span>
+                    </div>
+                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:20px; font-weight:500; text-transform:uppercase; letter-spacing:0.6px;">Predicted Usage</p>
+
+                    <div style="background:var(--accent-soft); border:1px solid var(--accent-mid); border-radius:var(--radius-md); padding:14px; margin-bottom:12px;">
+                        <div style="font-size:28px; font-weight:800; color:var(--accent);">₹<span id="cost-val">0.00</span></div>
+                        <p style="font-size:11px; color:var(--text-muted); margin:2px 0 0; font-weight:500;">Estimated Monthly Cost</p>
+                    </div>
+
+                    <div id="goal-comparison" style="font-size:13px; font-weight:600; padding:10px; border-radius:var(--radius-md);"></div>
+                </div>
+            </div>
+
+            <!-- Consumption Trend Card -->
+            <div class="glass-card" style="grid-column:span 2;">
+                <span class="widget-title">Consumption Trend</span>
+                <div id="trend-chart" style="min-height:260px; margin-top:12px;"></div>
+            </div>
+
+            <!-- AI Recommendations Card -->
+            <div class="glass-card full-width">
+                <span class="widget-title">AI Smart Recommendations</span>
+                <div id="suggestions" class="suggestion-list" style="margin-top:16px;">
+                    <div style="text-align:center; padding:32px; color:var(--text-muted); font-size:13px;">
+                        No recommendations yet — run a prediction first.
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ═══════════════ ANALYTICS PAGE ═══════════════ -->
+    <section id="analytics-page" class="page" style="display:none;">
+        <div style="display:flex; flex-direction:column; gap:20px;">
+            <div class="glass-card">
+                <span class="widget-title">Performance Trend</span>
+                <div id="analytics-trend-chart" style="min-height:340px; margin-top:12px;"></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                <div class="glass-card">
+                    <span class="widget-title">Appliance Distribution</span>
+                    <div id="distribution-chart" style="min-height:280px; margin-top:12px;"></div>
+                </div>
+                <div class="glass-card">
+                    <span class="widget-title">Scenarios Compared</span>
+                    <div id="comparison-chart" style="min-height:280px; margin-top:12px;"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ REPORTS PAGE ═══════════════ -->
+    <section id="reports-page" class="page" style="display:none;">
+        <div class="glass-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                <div>
+                    <span class="widget-title">Energy Reports</span>
+                    <h2 style="font-size:20px; font-weight:700; margin-top:4px;">Full History</h2>
+                </div>
+                <button class="btn-primary" onclick="downloadCSV()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Export CSV
+                </button>
+            </div>
+
+            <div class="filter-bar">
+                <div class="form-group" style="flex:1.5;">
+                    <label>Search</label>
+                    <input type="text" id="filter-search" placeholder="Search appliance..." oninput="applyFilters()">
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="filter-date" onchange="applyFilters()">
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="filter-type" onchange="applyFilters()">
+                        <option value="All">All Types</option>
+                        <option value="Air Conditioning">Air Conditioning</option>
+                        <option value="Computer">Computer</option>
+                        <option value="Dishwasher">Dishwasher</option>
+                        <option value="Fridge">Fridge</option>
+                        <option value="Heater">Heater</option>
+                        <option value="Lights">Lights</option>
+                        <option value="Microwave">Microwave</option>
+                        <option value="Oven">Oven</option>
+                        <option value="TV">TV</option>
+                        <option value="Washing Machine">Washing Machine</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Sort</label>
+                    <select id="sort-energy" onchange="applyFilters()">
+                        <option value="none">Newest First</option>
+                        <option value="desc">Energy: High → Low</option>
+                        <option value="asc">Energy: Low → High</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="data-table-container">
+                <table id="full-history-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Appliance</th>
+                            <th>Temp</th>
+                            <th>Size</th>
+                            <th>Time (h)</th>
+                            <th>AC</th>
+                            <th>Prediction (kWh)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ DEVICES PAGE ═══════════════ -->
+    <section id="devices-page" class="page" style="display:none;">
+        <div class="glass-card">
+            <span class="widget-title">Connected Devices</span>
+            <h2 style="font-size:20px; font-weight:700; margin:8px 0 16px;">IoT Device Management</h2>
+            <div style="padding:48px; text-align:center; color:var(--text-muted); border:1px dashed var(--border); border-radius:var(--radius-lg);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:12px; opacity:0.4;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                <p style="font-size:15px; font-weight:600; margin-bottom:6px;">No devices connected</p>
+                <p style="font-size:13px;">IoT integration coming soon</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ SETTINGS PAGE ═══════════════ -->
+    <section id="settings-page" class="page" style="display:none;">
+        <div class="glass-card">
+            <span class="widget-title">Settings</span>
+            <h2 style="font-size:20px; font-weight:700; margin:8px 0 24px;">System Preferences</h2>
+
+            <div style="display:flex; flex-direction:column; gap:24px; max-width:540px;">
+                <div style="padding:20px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface-alt);">
+                    <h3 style="font-size:14px; font-weight:600; margin-bottom:4px;">Language</h3>
+                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Change the system language using Google Translate.</p>
+                    <div id="google_translate_element"></div>
+                    <script>
+                        function googleTranslateElementInit() {
+                            new google.translate.TranslateElement({
+                                pageLanguage: 'en',
+                                includedLanguages: 'en,hi,te,kn',
+                                layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+                            }, 'google_translate_element');
+                        }
+                    </script>
+                    <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+                </div>
+
+                <div style="padding:20px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface-alt);">
+                    <h3 style="font-size:14px; font-weight:600; margin-bottom:4px;">Model Management</h3>
+                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Retrain the energy prediction model with the latest dataset.</p>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                        <button class="btn-secondary" onclick="trainModel()">Retrain Model</button>
+                        <div style="text-align:right;">
+                            <span style="font-size:11px; color:var(--text-muted); display:block; text-transform:uppercase; letter-spacing:0.5px;">Current Accuracy</span>
+                            <span id="model-accuracy" style="font-size:18px; font-weight:700; color:var(--accent);">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding:20px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface-alt);">
+                    <h3 style="font-size:14px; font-weight:600; margin-bottom:4px;">App Theme</h3>
+                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">Choose between light and dark visual styles.</p>
+                    <div style="display:flex; gap:12px;">
+                        <button class="btn-secondary theme-btn" id="theme-light" onclick="setTheme('light')" style="flex:1; border-width:2px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                            Light
+                        </button>
+                        <button class="btn-secondary theme-btn" id="theme-dark" onclick="setTheme('dark')" style="flex:1; border-width:2px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                            Dark
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- ═══════════════ HISTORY MODAL ═══════════════ -->
+<div id="stored-data-modal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2 style="font-size:16px; font-weight:700; display:flex; align-items:center; gap:8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Input History
+            </h2>
+            <button onclick="closeStoredDataModal()" style="background:none; border:none; font-size:22px; cursor:pointer; color:var(--text-muted); line-height:1;">&times;</button>
+        </div>
+
+        <div style="padding:16px 28px; border-bottom:1px solid var(--border);">
+            <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
+                <div style="flex:1; min-width:180px;">
+                    <label>Sort By</label>
+                    <select id="modal-sort" onchange="renderModalData()">
+                        <option value="date-desc">Date (Newest First)</option>
+                        <option value="date-asc">Date (Oldest First)</option>
+                        <option value="energy-desc">Energy (Highest)</option>
+                    </select>
+                </div>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0; padding-bottom:2px; font-size:13px; color:var(--text-secondary);">
+                    <input type="checkbox" id="modal-group" onchange="renderModalData()" style="width:16px; height:16px; accent-color:var(--accent);">
+                    Group identical appliances
+                </label>
+            </div>
+        </div>
+
+        <div class="modal-body">
+            <div class="data-table-container">
+                <table id="modal-history-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Mode</th>
+                            <th>Appliance</th>
+                            <th>Temp</th>
+                            <th>Household</th>
+                            <th>Time (h)</th>
+                            <th>AC</th>
+                            <th>Prediction (kWh)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="downloadModalCSV()">Export CSV</button>
+            <button class="btn-primary" onclick="clearStoredData()" style="background:var(--danger); box-shadow:0 2px 8px rgba(239,68,68,0.3);">Clear All Data</button>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
