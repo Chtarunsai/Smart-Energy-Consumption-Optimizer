@@ -771,6 +771,178 @@ tbody tr:hover td:last-child {
     padding: 24px;
 }
 
+/* ===== RESPONSIVE DESIGN ===== */
+
+/* Mobile Header (Hidden by default) */
+.mobile-header {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--sidebar-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 1000;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.menu-toggle {
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    cursor: pointer;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.menu-toggle:hover {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 998;
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+@media (max-width: 1024px) {
+    :root {
+        --sidebar-w: 200px;
+    }
+    
+    .main-content {
+        padding: 24px 30px;
+    }
+    
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        display: block;
+        padding-top: 64px; /* Space for mobile header */
+    }
+
+    .mobile-header {
+        display: flex;
+    }
+
+    .sidebar {
+        left: -100%;
+        width: 280px;
+        transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 999;
+        box-shadow: 10px 0 30px rgba(0,0,0,0.1);
+    }
+
+    .sidebar.open {
+        left: 0;
+    }
+
+    .sidebar.open + .sidebar-overlay {
+        display: block;
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: 20px;
+        max-width: 100%;
+    }
+
+    .header {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tab-selector {
+        display: flex;
+        width: 100%;
+    }
+
+    .tab-btn {
+        flex: 1;
+        padding: 10px;
+        font-size: 12px;
+    }
+
+    .appliance-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 15px;
+    }
+
+    .appliance-row label {
+        display: block;
+    }
+
+    .appliance-row select.appliance-type,
+    .appliance-row input.appliance-power,
+    .appliance-row input.appliance-time {
+        border-bottom: 1px solid var(--border);
+        padding: 8px 0;
+    }
+
+    .btn-primary, .btn-secondary {
+        width: 100%;
+    }
+
+    .prediction-value {
+        font-size: 36px;
+    }
+
+    .modal-card {
+        max-height: 85vh;
+        width: 95%;
+    }
+
+    .modal-header h2 {
+        font-size: 18px;
+    }
+
+    .modal-body {
+        padding: 15px;
+    }
+
+    /* Charts sizing for mobile */
+    .glass-card {
+        overflow: hidden;
+    }
+    
+    .apexcharts-canvas {
+        max-width: 100% !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .header h1 {
+        font-size: 22px;
+    }
+    
+    .glass-card {
+        padding: 16px;
+    }
+}
+
 .modal-card {
     background: var(--modal-bg);
     border-radius: var(--radius-xl);

@@ -21,8 +21,18 @@
     <p style="margin-top:20px; font-weight:600; font-size:16px; letter-spacing:0.5px;">Processing Energy Data...</p>
 </div>
 
+<!-- ===== MOBILE HEADER ===== -->
+<header class="mobile-header">
+    <div class="sidebar-logo">SECO 1.0</div>
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
+</header>
+
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
 <!-- ===== SIDEBAR ===== -->
-<nav class="sidebar">
+<nav class="sidebar" id="sidebar">
     <div class="sidebar-logo">SECO 1.0</div>
     <ul class="sidebar-menu">
         <li class="menu-item active" onclick="showPage('dashboard', this)">Dashboard</li>

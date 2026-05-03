@@ -10,7 +10,20 @@ const powerMap = {
 };
 
 // ================= UI NAVIGATION =================
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('open');
+    }
+}
+
 function showPage(pageId, el) {
+    // Close sidebar on mobile after clicking
+    if (window.innerWidth <= 768) {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) sidebar.classList.remove('open');
+    }
+
     document.querySelectorAll('.page').forEach(page => {
         page.style.display = 'none';
         page.classList.remove('active');
