@@ -407,19 +407,48 @@ function renderCharts(sessionData) {
     sessionData.forEach((item, index) => {
         const x = item.timestamp && item.timestamp.trim() !== "" ? item.timestamp : `Pt ${index + 1}`;
         const y = item.prediction || item.predicted_energy || 0;
+        const pt = { x, y };
 
+        // To make dots CONNECT, we need to include the point in the series 
+        // even if it's the start/end of a transition.
         if (y >= highThreshold) {
-            highSeriesData.push({ x, y });
+            highSeriesData.push(pt);
+            // Connect from previous if it was medium
+            if (index > 0 && sessionData[index-1].prediction < highThreshold && sessionData[index-1].prediction >= lowThreshold) {
+                // highSeriesData already has this? No, we need to add the PREVIOUS point to this series too
+                const prev = sessionData[index-1];
+                const prevX = prev.timestamp && prev.timestamp.trim() !== "" ? prev.timestamp : `Pt ${index}`;
+                const prevY = prev.prediction || prev.predicted_energy || 0;
+                highSeriesData.splice(highSeriesData.length - 1, 0, { x: prevX, y: prevY });
+            }
             medSeriesData.push({ x, y: null });
             lowSeriesData.push({ x, y: null });
         } else if (y >= lowThreshold) {
+            medSeriesData.push(pt);
+            // Connect from previous
+            if (index > 0) {
+                const prev = sessionData[index-1];
+                const prevY = prev.prediction || prev.predicted_energy || 0;
+                const prevX = prev.timestamp && prev.timestamp.trim() !== "" ? prev.timestamp : `Pt ${index}`;
+                if (prevY >= highThreshold || prevY < lowThreshold) {
+                    medSeriesData.splice(medSeriesData.length - 1, 0, { x: prevX, y: prevY });
+                }
+            }
             highSeriesData.push({ x, y: null });
-            medSeriesData.push({ x, y });
             lowSeriesData.push({ x, y: null });
         } else {
+            lowSeriesData.push(pt);
+            // Connect from previous
+            if (index > 0) {
+                const prev = sessionData[index-1];
+                const prevY = prev.prediction || prev.predicted_energy || 0;
+                const prevX = prev.timestamp && prev.timestamp.trim() !== "" ? prev.timestamp : `Pt ${index}`;
+                if (prevY >= lowThreshold) {
+                    lowSeriesData.splice(lowSeriesData.length - 1, 0, { x: prevX, y: prevY });
+                }
+            }
             highSeriesData.push({ x, y: null });
             medSeriesData.push({ x, y: null });
-            lowSeriesData.push({ x, y });
         }
     });
 
