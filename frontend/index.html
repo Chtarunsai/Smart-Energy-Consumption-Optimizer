@@ -39,12 +39,26 @@
         <li class="menu-item" onclick="showPage('analytics', this)">Analytics</li>
         <li class="menu-item" onclick="showPage('reports', this)">Reports</li>
         <li class="menu-item" onclick="showPage('devices', this)">Devices</li>
-        <li class="menu-item" onclick="showPage('settings', this)">Settings</li>
     </ul>
+
+    <!-- THEME TOGGLE AT BOTTOM OF SIDEBAR -->
+    <div class="sidebar-footer">
+        <div class="theme-pill-toggle" onclick="toggleTheme()" id="theme-pill">
+            <div class="toggle-track">
+                <span class="toggle-text day-text">DAY MODE</span>
+                <span class="toggle-text night-text">NIGHT MODE</span>
+                <div class="toggle-thumb">
+                    <span class="thumb-icon sun-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>
+                    <span class="thumb-icon moon-icon"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+                </div>
+            </div>
+        </div>
+    </div>
 </nav>
 
 <!-- ===== MAIN ===== -->
 <main class="main-content">
+    <div class="content-wrapper">
 
     <!-- HEADER -->
     <header class="header">
@@ -203,7 +217,7 @@
                                 <label>Appliance</label>
                                 <div class="custom-select" onclick="toggleCustomSelect(this, event)">
                                     <div class="select-trigger">
-                                        <span>Air Conditioning</span>
+                                        <input type="text" class="appliance-input" value="Air Conditioning" placeholder="Select or type..." onclick="event.stopPropagation()">
                                     </div>
                                     <div class="select-options">
                                         <div class="option selected" data-value="Air Conditioning" onclick="handleOptionClick(this, event)">Air Conditioning</div>
@@ -414,59 +428,8 @@
         </div>
     </section>
 
-    <!-- ═══════════════ SETTINGS PAGE ═══════════════ -->
-    <section id="settings-page" class="page" style="display:none;">
-        <div class="glass-card">
-            <span class="widget-title">Settings</span>
-            <h2 style="font-size:20px; font-weight:700; margin:8px 0 24px;">System Preferences</h2>
 
-            <div style="display:flex; flex-direction:column; gap:24px; max-width:540px;">
-                <div style="padding:20px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface-alt);">
-                    <h3 style="font-size:14px; font-weight:600; margin-bottom:4px;">Language</h3>
-                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Change the system language using Google Translate.</p>
-                    <div id="google_translate_element"></div>
-                    <script>
-                        function googleTranslateElementInit() {
-                            new google.translate.TranslateElement({
-                                pageLanguage: 'en',
-                                includedLanguages: 'en,hi,te,kn',
-                                layout: google.translate.TranslateElement.InlineLayout.SIMPLE
-                            }, 'google_translate_element');
-                        }
-                    </script>
-                    <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-                </div>
-
-                <div style="padding:20px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface-alt);">
-                    <h3 style="font-size:14px; font-weight:600; margin-bottom:4px;">Model Management</h3>
-                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Retrain the energy prediction model with the latest dataset.</p>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
-                        <button class="btn-secondary" onclick="trainModel()">Retrain Model</button>
-                        <div style="text-align:right;">
-                            <span style="font-size:11px; color:var(--text-muted); display:block; text-transform:uppercase; letter-spacing:0.5px;">Current Accuracy</span>
-                            <span id="model-accuracy" style="font-size:18px; font-weight:700; color:var(--accent);">—</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="padding:20px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface-alt);">
-                    <h3 style="font-size:14px; font-weight:600; margin-bottom:4px;">App Theme</h3>
-                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">Choose between light and dark visual styles.</p>
-                    <div style="display:flex; gap:12px;">
-                        <button class="btn-secondary theme-btn" id="theme-light" onclick="setTheme('light')" style="flex:1; border-width:2px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-                            Light
-                        </button>
-                        <button class="btn-secondary theme-btn" id="theme-dark" onclick="setTheme('dark')" style="flex:1; border-width:2px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                            Dark
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
+    </div> <!-- end content-wrapper -->
 </main>
 
 <!-- ═══════════════ HISTORY MODAL ═══════════════ -->

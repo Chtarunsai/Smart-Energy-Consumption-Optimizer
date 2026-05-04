@@ -123,7 +123,12 @@ function handleOptionClick(optionEl, event) {
     const text = optionEl.innerText;
 
     // Update UI
-    if (triggerText) triggerText.innerText = text;
+    const input = dropdown.querySelector('.appliance-input');
+    if (input) {
+        input.value = text;
+    } else if (triggerText) {
+        triggerText.innerText = text;
+    }
     dropdown.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
     optionEl.classList.add('selected');
     dropdown.classList.remove('active');
@@ -164,7 +169,10 @@ function addApplianceRow() {
     const customSelect = newRow.querySelector('.custom-select');
     if (customSelect) {
         customSelect.classList.remove('active');
-        customSelect.querySelector('.select-trigger span').innerText = "Air Conditioning";
+        const input = customSelect.querySelector('.appliance-input');
+        if (input) input.value = "Air Conditioning";
+        const triggerSpan = customSelect.querySelector('.select-trigger span');
+        if (triggerSpan) triggerSpan.innerText = "Air Conditioning";
         customSelect.querySelector('select.appliance-type').value = "Air Conditioning";
         customSelect.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
         customSelect.querySelector('.option[data-value="Air Conditioning"]').classList.add('selected');
@@ -195,7 +203,7 @@ async function predictManual() {
             TimeOfDay: document.getElementById('time-of-day').value,
             DayType: document.getElementById('day-type').value,
             Season: document.getElementById('season').value,
-            Appliance: row.querySelector('.appliance-type').value,
+            Appliance: row.querySelector('.appliance-input')?.value || row.querySelector('.appliance-type').value,
             Power: parseFloat(row.querySelector('.appliance-power').value),
             UsageTime: parseFloat(row.querySelector('.appliance-time').value),
             ACUsage: parseInt(document.getElementById('acusage').value),
@@ -388,32 +396,90 @@ function renderCharts(sessionData) {
         style: { color: mutedColor, fontSize: '15px' }
     };
 
-    // TIME AXIS FIX (REQUIREMENT 3)
-    // Use actual timestamp if available (CSV), otherwise index-based
-    const trendData = sessionData.map((item, index) => ({
-        x: item.timestamp && item.timestamp.trim() !== "" ? item.timestamp : `Pt ${index + 1}`,
-        y: item.prediction || item.predicted_energy || 0
-    }));
+    // TREND DATA CATEGORIZATION (REQUIREMENT: Multi-colored lines)
+    const highThreshold = 5.0;
+    const lowThreshold = 2.0;
+
+    const highSeriesData = [];
+    const medSeriesData = [];
+    const lowSeriesData = [];
+
+    sessionData.forEach((item, index) => {
+        const x = item.timestamp && item.timestamp.trim() !== "" ? item.timestamp : `Pt ${index + 1}`;
+        const y = item.prediction || item.predicted_energy || 0;
+
+        if (y >= highThreshold) {
+            highSeriesData.push({ x, y });
+            medSeriesData.push({ x, y: null });
+            lowSeriesData.push({ x, y: null });
+        } else if (y >= lowThreshold) {
+            highSeriesData.push({ x, y: null });
+            medSeriesData.push({ x, y });
+            lowSeriesData.push({ x, y: null });
+        } else {
+            highSeriesData.push({ x, y: null });
+            medSeriesData.push({ x, y: null });
+            lowSeriesData.push({ x, y });
+        }
+    });
 
     const trendOptions = {
-        series: [{ name: 'Energy (kWh)', data: trendData }],
-        chart: { type: 'area', height: 280, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
-        colors: [accentColor],
+        series: [
+            { name: 'High (>5kWh)', data: highSeriesData },
+            { name: 'Medium (2-5kWh)', data: medSeriesData },
+            { name: 'Safe (<2kWh)', data: lowSeriesData }
+        ],
+        chart: { type: 'area', height: 280, toolbar: { show: false }, fontFamily: 'Inter, sans-serif', stacked: false },
+        colors: ['#ef4444', '#f97316', '#22c55e'], // Red, Orange, Green
         stroke: { curve: 'straight', width: 3 },
-        markers: { size: 6, colors: ['#fff'], strokeColors: accentColor, strokeWidth: 3, hover: { size: 8 } },
-        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 90, 100] } },
+        markers: { 
+            size: 6, 
+            colors: ['#ef4444', '#f97316', '#22c55e'], 
+            strokeColors: '#fff', 
+            strokeWidth: 2, 
+            hover: { size: 8 } 
+        },
+        fill: { 
+            type: 'gradient', 
+            gradient: { 
+                shadeIntensity: 1, 
+                opacityFrom: 0.6, 
+                opacityTo: 0.1, 
+                stops: [0, 90, 100],
+                colorStops: [
+                    [
+                        { offset: 0, color: '#ef4444', opacity: 0.6 },
+                        { offset: 100, color: '#ef4444', opacity: 0.1 }
+                    ],
+                    [
+                        { offset: 0, color: '#f97316', opacity: 0.6 },
+                        { offset: 100, color: '#f97316', opacity: 0.1 }
+                    ],
+                    [
+                        { offset: 0, color: '#22c55e', opacity: 0.6 },
+                        { offset: 100, color: '#22c55e', opacity: 0.1 }
+                    ]
+                ]
+            } 
+        },
         noData: noDataConfig,
         dataLabels: { enabled: false },
+        legend: {
+            show: true,
+            position: 'top',
+            horizontalAlign: 'right',
+            labels: { colors: textColor }
+        },
         xaxis: { 
             type: 'category', 
             labels: { show: true, rotate: -45, style: { colors: mutedColor, fontSize: '10px' } },
             title: { text: 'Input Sequence', style: { fontWeight: 700, color: textColor } }
         },
         yaxis: { 
-            labels: { formatter: (val) => val.toFixed(2), style: { colors: mutedColor } },
+            labels: { formatter: (val) => val ? val.toFixed(2) : '0.00', style: { colors: mutedColor } },
             title: { text: 'Energy (kWh)', style: { fontWeight: 700, color: textColor } }
         },
-        title: { text: 'Prediction Sequence Analysis', align: 'left', style: { fontSize: '14px', fontWeight: 'bold', color: textColor } },
+        title: { text: 'Energy Consumption Zones', align: 'left', style: { fontSize: '14px', fontWeight: 'bold', color: textColor } },
         grid: { borderColor: gridColor, strokeDashArray: 4 },
         tooltip: { theme: isDark ? 'dark' : 'light' }
     };
@@ -627,22 +693,15 @@ function applyFilters() {
 }
 
 // ================= THEME MANAGEMENT =================
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = current === 'light' ? 'dark' : 'light';
+    setTheme(next);
+}
+
 function setTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
-    
-    // Update theme toggle UI
-    document.querySelectorAll('.theme-btn').forEach(btn => {
-        btn.style.borderColor = 'var(--border)';
-        btn.style.background = 'var(--surface-alt)';
-        btn.style.color = 'var(--text-secondary)';
-    });
-    const activeBtn = document.getElementById(`theme-${theme}`);
-    if (activeBtn) {
-        activeBtn.style.borderColor = 'var(--accent)';
-        activeBtn.style.background = 'var(--accent-soft)';
-        activeBtn.style.color = 'var(--accent)';
-    }
 
     // Refresh charts if we have data to apply new theme colors
     if (currentHistory && currentHistory.length > 0) {
