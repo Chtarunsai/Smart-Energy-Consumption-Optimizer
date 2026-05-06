@@ -778,3 +778,104 @@ document.addEventListener('DOMContentLoaded', () => {
     // loadAllData();
 });
 
+// ================= AI ASSISTANT LOGIC =================
+function toggleAIPanel() {
+    const panel = document.getElementById('ai-panel');
+    if (panel) {
+        panel.classList.toggle('open');
+        if (panel.classList.contains('open')) {
+            document.getElementById('ai-user-input').focus();
+        }
+    }
+}
+
+async function sendAIMessage() {
+    const input = document.getElementById('ai-user-input');
+    const chatMessages = document.getElementById('ai-chat-messages');
+    const sendBtn = document.getElementById('ai-send-btn');
+    const query = input.value.trim();
+
+    if (!query) return;
+
+    // Add user message to UI
+    addMessageToChat('user', query);
+    input.value = '';
+    
+    // Disable input/button
+    input.disabled = true;
+    sendBtn.disabled = true;
+
+    // Add typing indicator
+    const typingId = addTypingIndicator();
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    // Gather context from dashboard
+    const context = {
+        temperature: document.getElementById('temp')?.value || '25',
+        timeOfDay: document.getElementById('time-of-day')?.value || 'Afternoon',
+        dayType: document.getElementById('day-type')?.value || 'Weekday',
+        season: document.getElementById('season')?.value || 'Summer',
+        householdSize: document.getElementById('hsize')?.value || '3',
+        acUsage: parseInt(document.getElementById('acusage')?.value || '0'),
+        totalPrediction: document.getElementById('energy-val')?.innerText || '0',
+        totalCost: document.getElementById('cost-val')?.innerText || '0',
+        appliances: Array.from(document.querySelectorAll('.appliance-input')).map(i => i.value).filter(v => v)
+    };
+
+    try {
+        const response = await fetch(`${API_BASE}/ask-ai`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, context })
+        });
+
+        const result = await response.json();
+        removeTypingIndicator(typingId);
+
+        if (response.ok) {
+            addMessageToChat('ai', result.answer);
+        } else {
+            addMessageToChat('ai', `Sorry, I encountered an error: ${result.error}`);
+        }
+    } catch (e) {
+        removeTypingIndicator(typingId);
+        addMessageToChat('ai', "Failed to connect to the AI Assistant. Please check if the backend is running and the API key is set.");
+    } finally {
+        input.disabled = false;
+        sendBtn.disabled = false;
+        input.focus();
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+}
+
+function addMessageToChat(sender, text) {
+    const chatMessages = document.getElementById('ai-chat-messages');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${sender}-message`;
+    
+    // Simple markdown-like formatting for bold/lists
+    let formattedText = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>')
+        .replace(/^\* (.*?)$/gm, '• $1');
+        
+    msgDiv.innerHTML = formattedText;
+    chatMessages.appendChild(msgDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function addTypingIndicator() {
+    const chatMessages = document.getElementById('ai-chat-messages');
+    const indicator = document.createElement('div');
+    const id = 'typing-' + Date.now();
+    indicator.id = id;
+    indicator.className = 'typing-indicator';
+    indicator.innerHTML = '<span></span><span></span><span></span>';
+    chatMessages.appendChild(indicator);
+    return id;
+}
+
+function removeTypingIndicator(id) {
+    const indicator = document.getElementById(id);
+    if (indicator) indicator.remove();
+}

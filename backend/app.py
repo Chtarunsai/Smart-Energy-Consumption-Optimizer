@@ -6,12 +6,18 @@ import os
 import sys
 import csv
 import threading
+import time
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from training import EnergyPredictor
 from db_handler import save_prediction_to_db, save_predictions_bulk_to_db, get_history_from_db, reset_db
 from utils import generate_suggestions
+from google import genai
 
 app = Flask(__name__, static_folder='../frontend', static_url_path='')
 CORS(app)
@@ -185,6 +191,82 @@ def get_accuracy():
 def reset_data():
     reset_db()
     return jsonify({'status': 'success', 'message': 'Database reset successfully.'})
+
+# --- AI ASSISTANT ENDPOINT ---
+@app.route('/ask-ai', methods=['POST'])
+def ask_ai():
+    data = request.json
+    user_query = data.get('query')
+    context = data.get('context', {})
+    
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        return jsonify({'error': 'GEMINI_API_KEY environment variable not set.'}), 500
+    
+    try:
+        client = genai.Client(api_key=api_key)
+        
+        # Build prompt with context
+        prompt = f"""
+        You are a Smart Energy Assistant for SECO 1.0. 
+        Your goal is to help users understand their energy consumption and provide actionable optimization tips.
+        
+        CURRENT DASHBOARD CONTEXT:
+        - Temperature: {context.get('temperature', 'N/A')}°C
+        - Time of Day: {context.get('timeOfDay', 'N/A')}
+        - Day Type: {context.get('dayType', 'N/A')}
+        - Season: {context.get('season', 'N/A')}
+        - Household Size: {context.get('householdSize', 'N/A')}
+        - AC Usage: {'ON' if context.get('acUsage') == 1 else 'OFF'}
+        - Total Predicted Energy: {context.get('totalPrediction', '0')} kWh
+        - Estimated Cost: ₹{context.get('totalCost', '0')}
+        - Appliances currently being analyzed: {', '.join(context.get('appliances', []))}
+        
+        USER QUESTION: {user_query}
+        
+        Provide a short, intelligent, and contextual answer. Use the data above to be specific. 
+        If the user asks "What if I reduce AC usage?", calculate a rough estimate based on the current context.
+        Keep formatting clean and professional.
+        """
+        
+        # Multi-model fallback strategy
+        models_to_try = ['gemini-3-flash-preview', 'gemini-flash-latest']
+        last_error = None
+        
+        for model_name in models_to_try:
+            max_retries = 2
+            for attempt in range(max_retries):
+                try:
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=prompt
+                    )
+                    return jsonify({'answer': response.text, 'model_used': model_name})
+                except Exception as e:
+                    last_error = str(e)
+                    # Retry on 429 (Quota) or 503 (Unavailable)
+                    if ("429" in last_error or "503" in last_error) and attempt < max_retries - 1:
+                        time.sleep(2)
+                        continue
+                    break # Move to next model if retries exhausted or other error
+        
+        # If all models fail
+        raise Exception(last_error)
+                
+    except Exception as e:
+        print(f"ERROR in /ask-ai: {str(e)}")
+        error_msg = str(e)
+        if "429" in error_msg:
+            return jsonify({
+                'answer': "I'm currently experiencing high demand (quota limit reached). Please wait a moment and try again.",
+                'error_type': 'quota_exceeded'
+            }), 429
+        elif "503" in error_msg:
+            return jsonify({
+                'answer': "The AI service is temporarily unavailable due to high demand. Please try again in a few seconds.",
+                'error_type': 'service_unavailable'
+            }), 503
+        return jsonify({'error': error_msg}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False)
